@@ -3,9 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2046
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatWell.YouTube", "ChatWell.YouTube\ChatWell.YouTube.csproj", "{126F1C53-BA29-4B7C-B676-A5A4B380FEB0}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatWell.YouTube.Tests", "ChatWell.YouTube.Tests\ChatWell.YouTube.Tests.csproj", "{4770079A-74DC-4DBB-8B1F-ED01965E54B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoutubeBot", "YoutubeBot\YoutubeBot\YoutubeBot.csproj", "{126F1C53-BA29-4B7C-B676-A5A4B380FEB0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

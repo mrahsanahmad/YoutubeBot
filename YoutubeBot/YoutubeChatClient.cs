@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,8 +7,16 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 
-namespace ChatWell.YouTube
+namespace YoutubeBotNS.YoutubeBot
 {
+    public delegate void  NewMsgHandler(IEnumerable<Msg> msgs);
+
+    public class Msg
+    {
+        public string AuthorName { get; set; }
+        public string DisplayMsg { get; set; }
+        public string AuthorId { get; set; }
+    }
     public interface IYouTubeChatClient
     {
         bool IsConnected { get; }
@@ -24,7 +33,8 @@ namespace ChatWell.YouTube
 
         event EventHandler<bool> OnDisconnected;
 
-        event EventHandler<LiveChatMessageListResponse> OnMessageReceived;
+        event NewMsgHandler OnMessageReceived;
+
     }
 
     public class YouTubeChatClient : IYouTubeChatClient
@@ -33,11 +43,12 @@ namespace ChatWell.YouTube
         private Thread chatThread;
         private bool disconnect;
         private string liveChatId;
-        private YouTubeService youtubeService;
 
         public bool IsConnected { get; private set; }
 
         public bool IsInitialized { get; private set; }
+
+        public YouTubeService YoutubeService { get; private set; }
 
         public YouTubeChatClient(IYouTubeAuthService youtubeAuthService)
         {
@@ -72,7 +83,12 @@ namespace ChatWell.YouTube
 
                                 if (!isFirstRun)
                                 {
-                                    this.OnMessageReceived?.Invoke(this, response);
+                                    var msgs = response.Items.Select(
+                                        i => new Msg { 
+                                            AuthorName = i.AuthorDetails.DisplayName, 
+                                            DisplayMsg = i.Snippet.DisplayMessage,
+                                            AuthorId = i.Snippet.AuthorChannelId});
+                                    this.OnMessageReceived(msgs);
                                 }
 
                                 retryAttempts = 0;
@@ -127,7 +143,7 @@ namespace ChatWell.YouTube
                     }
                 };
 
-                var request = this.youtubeService.LiveChatMessages.Insert(liveChatMessage, "snippet");
+                var request = this.YoutubeService.LiveChatMessages.Insert(liveChatMessage, "snippet");
                 return await request.ExecuteAsync().ConfigureAwait(false);
             }
 
@@ -136,10 +152,10 @@ namespace ChatWell.YouTube
 
         private async Task<string> GetLiveChatIdAsync()
         {
-            var request = this.youtubeService.LiveBroadcasts.List("snippet");
+            var request = this.YoutubeService.LiveBroadcasts.List("snippet");
             request.Fields = "items/snippet/liveChatId";
-            request.BroadcastType = LiveBroadcastsResource.ListRequest.BroadcastTypeEnum.All;
-            request.BroadcastStatus = LiveBroadcastsResource.ListRequest.BroadcastStatusEnum.All;
+            //request.BroadcastType = LiveBroadcastsResource.ListRequest.BroadcastTypeEnum.All;
+            request.BroadcastStatus = LiveBroadcastsResource.ListRequest.BroadcastStatusEnum.Active;
 
             var response = await request.ExecuteAsync().ConfigureAwait(false);
             return response?.Items?.FirstOrDefault()?.Snippet?.LiveChatId;
@@ -147,7 +163,7 @@ namespace ChatWell.YouTube
 
         private Task<LiveChatMessageListResponse> GetLiveChatMessagesAsync(string liveChatId, string nextPageToken)
         {
-            var request = this.youtubeService.LiveChatMessages.List(liveChatId, "snippet,authorDetails");
+            var request = this.YoutubeService.LiveChatMessages.List(liveChatId, "snippet,authorDetails");
             request.PageToken = string.IsNullOrWhiteSpace(nextPageToken) ? "" : nextPageToken;
 
             return request.ExecuteAsync();
@@ -162,7 +178,7 @@ namespace ChatWell.YouTube
                 ApplicationName = this.GetType().ToString()
             };
 
-            this.youtubeService = new YouTubeService(initializer);
+            this.YoutubeService = new YouTubeService(initializer);
             this.liveChatId = await this.GetLiveChatIdAsync().ConfigureAwait(false);
             this.IsInitialized = true;
         }
@@ -171,6 +187,6 @@ namespace ChatWell.YouTube
 
         public event EventHandler<bool> OnDisconnected;
 
-        public event EventHandler<LiveChatMessageListResponse> OnMessageReceived;
+        public event NewMsgHandler OnMessageReceived;
     }
 }
